@@ -17,6 +17,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.example.leave_management.security.JwtAuthenticationFilter;
 
@@ -24,14 +26,9 @@ import com.example.leave_management.security.JwtAuthenticationFilter;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final String allowedOrigins;
 
-    public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter,
-            @Value("${app.cors.allowed-origins}") String allowedOrigins
-    ) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.allowedOrigins = allowedOrigins;
     }
 
     @Bean
@@ -46,11 +43,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            CorsConfigurationSource corsConfigurationSource
+    ) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -68,30 +68,46 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-
+    public CorsConfiguration corsConfiguration(
+            @Value("${app.cors.allowed-origins}") String allowedOrigins
+    ) {
         CorsConfiguration configuration = new CorsConfiguration();
-
         configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isEmpty())
                 .toList());
-
         configuration.setAllowedMethods(
-                List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")
-        );
+                List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Content-Type", "Authorization"));
+        configuration.setAllowCredentials(false);
+        return configuration;
+    }
 
-        configuration.setAllowedHeaders(
-                List.of("*")
-        );
-
-        configuration.setAllowCredentials(true);
-
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(
+            CorsConfiguration corsConfiguration
+    ) {
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
-
-        source.registerCorsConfiguration("/**", configuration);
-
+        source.registerCorsConfiguration("/**", corsConfiguration);
         return source;
+    }
+
+    @Bean
+    public WebMvcConfigurer corsConfigurer(CorsConfiguration corsConfiguration) {
+
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                List<String> origins = corsConfiguration.getAllowedOrigins();
+                List<String> methods = corsConfiguration.getAllowedMethods();
+                List<String> headers = corsConfiguration.getAllowedHeaders();
+                registry.addMapping("/**")
+                        .allowedOrigins(origins.toArray(String[]::new))
+                        .allowedMethods(methods.toArray(String[]::new))
+                        .allowedHeaders(headers.toArray(String[]::new))
+                        .allowCredentials(corsConfiguration.getAllowCredentials());
+            }
+        };
     }
 }
