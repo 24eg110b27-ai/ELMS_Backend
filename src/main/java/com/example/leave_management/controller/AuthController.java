@@ -1,5 +1,7 @@
 package com.example.leave_management.controller;
 
+import java.util.Locale;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -44,20 +46,27 @@ public class AuthController {
     public ResponseEntity<?> register(
             @Valid @RequestBody RegisterRequest request
     ) {
+        String username = request.getUsername().trim();
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
 
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (username.contains("@")) {
+            return ResponseEntity.badRequest()
+                    .body("Username cannot contain @");
+        }
+
+        if (userRepository.existsByUsername(username)) {
             return ResponseEntity.badRequest()
                     .body("Username already exists");
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest()
                     .body("Email already exists");
         }
 
         User user = new User(
-                request.getUsername(),
-                request.getEmail(),
+                username,
+                email,
                 passwordEncoder.encode(request.getPassword()),
                 User.Role.EMPLOYEE
         );
@@ -71,22 +80,27 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request
     ) {
+        String usernameOrEmail = request.getUsername().trim();
+        User user = userRepository.findByUsernameOrEmail(
+                        usernameOrEmail,
+                        usernameOrEmail
+                )
+                .orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
 
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getUsername(),
+                            user.getUsername(),
                             request.getPassword()
                     )
             );
         } catch (AuthenticationException exception) {
             return ResponseEntity.status(401).build();
         }
-
-        User user = userRepository.findByUsername(
-                        request.getUsername()
-                )
-                .orElseThrow();
 
         org.springframework.security.core.userdetails.User
                 userDetails =

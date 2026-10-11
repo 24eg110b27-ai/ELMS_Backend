@@ -99,8 +99,8 @@ class LeaveManagementApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "username": "new-employee",
-                                  "email": "new-employee@example.test",
+                                  "username": "  new-employee  ",
+                                  "email": "NEW-EMPLOYEE@EXAMPLE.TEST",
                                   "password": "safe-test-password",
                                   "role": "ADMIN"
                                 }
@@ -112,6 +112,10 @@ class LeaveManagementApplicationTests {
         verify(userRepository).save(userCaptor.capture());
         User createdUser = userCaptor.getValue();
 
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "new-employee", createdUser.getUsername());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "new-employee@example.test", createdUser.getEmail());
         org.junit.jupiter.api.Assertions.assertEquals(
                 User.Role.EMPLOYEE, createdUser.getRole());
         org.junit.jupiter.api.Assertions.assertNotEquals(
@@ -141,6 +145,23 @@ class LeaveManagementApplicationTests {
     }
 
     @Test
+    void registrationRejectsUsernamesContainingAtSign() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "employee@example.test",
+                                  "email": "other@example.test",
+                                  "password": "safe-test-password"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Username cannot contain @"));
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
     void validCredentialsReturnJwtAndUserRole() throws Exception {
         String encodedPassword = passwordEncoder.encode("safe-test-password");
         User user = new User(
@@ -148,7 +169,7 @@ class LeaveManagementApplicationTests {
                 "login-user@example.test",
                 encodedPassword,
                 User.Role.EMPLOYEE);
-        when(userRepository.findByUsername("login-user"))
+        when(userRepository.findByUsernameOrEmail("login-user", "login-user"))
                 .thenReturn(Optional.of(user));
 
         mockMvc.perform(post("/api/auth/login")
@@ -173,7 +194,7 @@ class LeaveManagementApplicationTests {
                 "login-user@example.test",
                 encodedPassword,
                 User.Role.EMPLOYEE);
-        when(userRepository.findByUsername("login-user"))
+        when(userRepository.findByUsernameOrEmail("login-user", "login-user"))
                 .thenReturn(Optional.of(user));
 
         mockMvc.perform(post("/api/auth/login")
@@ -182,6 +203,48 @@ class LeaveManagementApplicationTests {
                                 {
                                   "username": "login-user",
                                   "password": "incorrect-test-password"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    void emailCredentialsReturnJwtWithCanonicalUsername() throws Exception {
+        String encodedPassword = passwordEncoder.encode("safe-test-password");
+        User user = new User(
+                "login-user",
+                "login-user@example.test",
+                encodedPassword,
+                User.Role.EMPLOYEE);
+        when(userRepository.findByUsernameOrEmail(
+                "login-user@example.test", "login-user@example.test"))
+                .thenReturn(Optional.of(user));
+        when(userRepository.findByUsernameOrEmail("login-user", "login-user"))
+                .thenReturn(Optional.of(user));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "  login-user@example.test  ",
+                                  "password": "safe-test-password"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.username").value("login-user"))
+                .andExpect(jsonPath("$.role").value("EMPLOYEE"));
+    }
+
+    @Test
+    void unknownLoginIdentifierReturnsUnauthorized() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "unknown-user",
+                                  "password": "safe-test-password"
                                 }
                                 """))
                 .andExpect(status().isUnauthorized())
