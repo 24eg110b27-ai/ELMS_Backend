@@ -19,7 +19,7 @@ import com.example.leave_management.security.JwtService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/api/auth", "/auth"})
 public class AuthController {
 
     private final UserRepository userRepository;
