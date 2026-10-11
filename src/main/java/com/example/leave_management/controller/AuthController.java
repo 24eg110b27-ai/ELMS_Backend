@@ -1,6 +1,7 @@
 package com.example.leave_management.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,7 +20,7 @@ import com.example.leave_management.security.JwtService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping({"/api/auth", "/auth"})
+@RequestMapping("/api/auth")
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -71,12 +72,16 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request
     ) {
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                )
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
+        } catch (AuthenticationException exception) {
+            return ResponseEntity.status(401).build();
+        }
 
         User user = userRepository.findByUsername(
                         request.getUsername()
