@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class LeaveManagementApplicationTests {
 
     private static final String ALLOWED_FRONTEND_ORIGIN =
-            "https://elmsfrontend-nwlosr9jo-csk-8cda.vercel.app";
+            "https://elmsfrontend.onrender.com";
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -56,58 +56,58 @@ class LeaveManagementApplicationTests {
                 .build();
     }
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
-	@Test
-	void registrationAndLoginRoutesArePublicAndValidateRequests() throws Exception {
-	    mockMvc.perform(post("/api/auth/register")
-	                    .contentType(MediaType.APPLICATION_JSON)
-	                    .content("{}"))
-	            .andExpect(status().isBadRequest());
+    @Test
+    void registrationAndLoginRoutesArePublicAndValidateRequests() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
 
-	    mockMvc.perform(post("/auth/register")
-	                    .contentType(MediaType.APPLICATION_JSON)
-	                    .content("{}"))
-	            .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
 
-	    mockMvc.perform(post("/api/auth/login")
-	                    .contentType(MediaType.APPLICATION_JSON)
-	                    .content("{}"))
-	            .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
 
-	    mockMvc.perform(post("/auth/login")
-	                    .contentType(MediaType.APPLICATION_JSON)
-	                    .content("{}"))
-	            .andExpect(status().isBadRequest());
-	}
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
 
-	@Test
-	void employeeAndManagerRoutesRemainProtected() throws Exception {
-	    mockMvc.perform(get("/api/employee/leaves"))
-	            .andExpect(status().isForbidden());
+    @Test
+    void employeeAndManagerRoutesRemainProtected() throws Exception {
+        mockMvc.perform(get("/api/employee/leaves"))
+                .andExpect(status().isForbidden());
 
-	    mockMvc.perform(get("/api/manager/leaves"))
-	            .andExpect(status().isForbidden());
-	}
+        mockMvc.perform(get("/api/manager/leaves"))
+                .andExpect(status().isForbidden());
+    }
 
-	@Test
-	void corsAllowsConfiguredFrontendPreflightAndRejectsOtherOrigins()
-	        throws Exception {
-	    mockMvc.perform(options("/api/auth/register")
-	                    .header("Origin", ALLOWED_FRONTEND_ORIGIN)
-	                    .header("Access-Control-Request-Method", "POST")
-	                    .header("Access-Control-Request-Headers",
-	                            "content-type,authorization"))
-	            .andExpect(status().isOk())
-	            .andExpect(header().string(
-	                    "Access-Control-Allow-Origin",
-	                    ALLOWED_FRONTEND_ORIGIN));
+    @Test
+    void corsAllowsConfiguredFrontendPreflightAndRejectsOtherOrigins()
+            throws Exception {
+        mockMvc.perform(options("/api/auth/register")
+                        .header("Origin", ALLOWED_FRONTEND_ORIGIN)
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers",
+                                "content-type,authorization"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Access-Control-Allow-Origin",
+                        ALLOWED_FRONTEND_ORIGIN));
 
-	    mockMvc.perform(options("/api/auth/register")
-	                    .header("Origin", "https://untrusted.example")
-	                    .header("Access-Control-Request-Method", "POST"))
-	            .andExpect(status().isForbidden());
-	}
+        mockMvc.perform(options("/api/auth/register")
+                        .header("Origin", "https://untrusted.example")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden());
+    }
 }

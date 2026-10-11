@@ -17,8 +17,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.example.leave_management.security.JwtAuthenticationFilter;
 
@@ -91,23 +89,5 @@ public class SecurityConfig {
                 new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfiguration);
         return source;
-    }
-
-    @Bean
-    public WebMvcConfigurer corsConfigurer(CorsConfiguration corsConfiguration) {
-
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                List<String> origins = corsConfiguration.getAllowedOrigins();
-                List<String> methods = corsConfiguration.getAllowedMethods();
-                List<String> headers = corsConfiguration.getAllowedHeaders();
-                registry.addMapping("/**")
-                        .allowedOrigins(origins.toArray(String[]::new))
-                        .allowedMethods(methods.toArray(String[]::new))
-                        .allowedHeaders(headers.toArray(String[]::new))
-                        .allowCredentials(corsConfiguration.getAllowCredentials());
-            }
-        };
     }
 }
